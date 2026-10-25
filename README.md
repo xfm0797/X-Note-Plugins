@@ -14,6 +14,14 @@ https://raw.githubusercontent.com/xfm0797/X-Note-Plugins/main/index.json
 https://cdn.jsdelivr.net/gh/xfm0797/X-Note-Plugins@main/index.json
 ```
 
+Gitee 镜像（本仓库同步托管于 Gitee，直连可用）：
+
+```
+https://gitee.com/xfm0797/x-note-plugins/raw/main/index.json
+```
+
+以上三个地址内容完全一致，任选其一填入 **设置 → 插件中心** 即可。
+
 ## 收录插件
 
 | 插件 | 版本 | 说明 |
