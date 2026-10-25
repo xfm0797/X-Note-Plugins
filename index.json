@@ -1,0 +1,33 @@
+{
+  "name": "X-Note 官方插件中心",
+  "updated": "2026-10-25",
+  "plugins": [
+    {
+      "id": "hello-world",
+      "name": "Hello World 样板",
+      "version": "1.0.0",
+      "description": "开发样板：命令 + 设置面板 + storage 读写 + 配置持久化的最小完整用法",
+      "author": "XFM",
+      "homepage": "https://github.com/xfm0797/X-Note",
+      "zip": "https://cdn.jsdelivr.net/gh/xfm0797/X-Note-Plugins@main/plugins/hello-world.zip"
+    },
+    {
+      "id": "github-gist",
+      "name": "GitHub Gist 备份",
+      "version": "1.0.0",
+      "description": "笔记库一键备份到 GitHub Gist 并随时恢复（保留目录结构，远端删除可同步）。需配置 GitHub 令牌（gist 权限）",
+      "author": "XFM",
+      "homepage": "https://github.com/xfm0797/X-Note",
+      "zip": "https://cdn.jsdelivr.net/gh/xfm0797/X-Note-Plugins@main/plugins/github-gist.zip"
+    },
+    {
+      "id": "gitee-gist",
+      "name": "Gitee 代码片段备份",
+      "version": "1.0.0",
+      "description": "笔记库一键备份到 Gitee 代码片段（扁平化存储 + 清单还原目录结构）。需配置 Gitee 私人令牌（gists + user_info）",
+      "author": "XFM",
+      "homepage": "https://github.com/xfm0797/X-Note",
+      "zip": "https://cdn.jsdelivr.net/gh/xfm0797/X-Note-Plugins@main/plugins/gitee-gist.zip"
+    }
+  ]
+}
