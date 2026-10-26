@@ -1,0 +1,9 @@
+{
+  "id": "bulk-replace",
+  "name": "全库批量查找替换",
+  "version": "1.0.0",
+  "description": "正则/字面批量替换全库笔记，先预览命中位置再执行；自动备份并支持一键撤销",
+  "author": "XFM",
+  "homepage": "https://github.com/xfm0797/X-Note",
+  "main": "main.js"
+}

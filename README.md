@@ -26,6 +26,9 @@ https://gitee.com/xfm0797/x-note-plugins/raw/main/index.json
 
 | 插件 | 版本 | 说明 |
 | ---- | ---- | ---- |
+| [todo-dashboard](plugins/todo-dashboard.zip) | 1.0.0 | **全库待办看板**：聚合全库 `- [ ]` 任务，勾选即回写原文件；支持 `#标签` / `@due(2026-12-31)` 筛选、完成率统计、清单导出 |
+| [bulk-replace](plugins/bulk-replace.zip) | 1.0.0 | **全库批量查找替换**：正则/字面替换，先预览命中文件与行号再二次确认；执行前自动备份（`.xnote-bulk-backup/`），支持一键撤销 |
+| [link-check](plugins/link-check.zip) | 1.0.0 | **链接健康检查**：扫描 `[[双向链接]]`，报告断链（附相似标题建议）、孤儿笔记、重名笔记、标签分布，可导出 Markdown 报告 |
 | [hello-world](plugins/hello-world.zip) | 1.0.0 | 开发样板：命令 + 设置面板 + storage 读写 + 配置持久化的最小完整用法 |
 | [github-gist](plugins/github-gist.zip) | 1.0.0 | 笔记库一键备份到 GitHub Gist 并随时恢复（保留目录结构，远端删除可同步） |
 | [gitee-gist](plugins/gitee-gist.zip) | 1.0.0 | 笔记库一键备份到 Gitee 代码片段（扁平化存储 + 清单还原目录结构） |
@@ -35,11 +38,26 @@ https://gitee.com/xfm0797/x-note-plugins/raw/main/index.json
 ```
 X-Note-Plugins/
 ├── index.json        # 插件索引（数组或 { plugins: [...] }，每项含 id/name/version/zip）
+├── build.py          # 打包脚本：src/<插件> → plugins/<插件>.zip
 ├── README.md
+├── src/              # 插件源码（可读可审阅）
+│   ├── todo-dashboard/
+│   ├── bulk-replace/
+│   └── link-check/
+├── test/
+│   └── plugin-test.mjs   # 插件自测（模拟宿主 + 迷你 React 驱动真实面板逻辑）
 └── plugins/          # .zip 插件包（plugin.json + main.js 位于包根）
-    ├── hello-world.zip
-    ├── github-gist.zip
-    └── gitee-gist.zip
+    ├── todo-dashboard.zip
+    ├── bulk-replace.zip
+    └── link-check.zip
+```
+
+## 本地打包与自测
+
+```bash
+python build.py                  # 打包 src/ 下全部插件到 plugins/
+python build.py todo-dashboard    # 只打包指定插件
+node test/plugin-test.mjs         # 跑插件逻辑自测（30 项断言）
 ```
 
 ## index.json 条目格式

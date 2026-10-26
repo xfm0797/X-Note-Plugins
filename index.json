@@ -1,7 +1,34 @@
 {
   "name": "X-Note 官方插件中心",
-  "updated": "2026-10-25",
+  "updated": "2026-10-26",
   "plugins": [
+    {
+      "id": "todo-dashboard",
+      "name": "全库待办看板",
+      "version": "1.0.0",
+      "description": "扫描全库任务清单聚合成看板，勾选即回写原文件；支持 #标签 / @due(日期) 筛选、完成率统计与清单导出",
+      "author": "XFM",
+      "homepage": "https://github.com/xfm0797/X-Note",
+      "zip": "https://cdn.jsdelivr.net/gh/xfm0797/X-Note-Plugins@main/plugins/todo-dashboard.zip"
+    },
+    {
+      "id": "bulk-replace",
+      "name": "全库批量查找替换",
+      "version": "1.0.0",
+      "description": "正则/字面批量替换全库笔记，先预览命中文件与行号再二次确认执行；自动备份并支持一键撤销",
+      "author": "XFM",
+      "homepage": "https://github.com/xfm0797/X-Note",
+      "zip": "https://cdn.jsdelivr.net/gh/xfm0797/X-Note-Plugins@main/plugins/bulk-replace.zip"
+    },
+    {
+      "id": "link-check",
+      "name": "链接健康检查",
+      "version": "1.0.0",
+      "description": "扫描全库 [[双向链接]]，报告断链（附相似标题建议）、孤儿笔记、重名笔记与标签分布，可一键导出 Markdown 报告",
+      "author": "XFM",
+      "homepage": "https://github.com/xfm0797/X-Note",
+      "zip": "https://cdn.jsdelivr.net/gh/xfm0797/X-Note-Plugins@main/plugins/link-check.zip"
+    },
     {
       "id": "hello-world",
       "name": "Hello World 样板",

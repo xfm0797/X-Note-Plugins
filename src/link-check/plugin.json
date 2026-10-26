@@ -1,0 +1,9 @@
+{
+  "id": "link-check",
+  "name": "链接健康检查",
+  "version": "1.0.0",
+  "description": "扫描全库 [[双向链接]]，报告断链（含相似标题建议）、孤儿笔记、重名笔记与标签分布，可导出报告",
+  "author": "XFM",
+  "homepage": "https://github.com/xfm0797/X-Note",
+  "main": "main.js"
+}

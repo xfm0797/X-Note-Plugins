@@ -1,0 +1,9 @@
+{
+  "id": "todo-dashboard",
+  "name": "全库待办看板",
+  "version": "1.0.0",
+  "description": "扫描全库任务清单，勾选即回写原文件；支持标签/到期日筛选、完成率统计与清单导出",
+  "author": "XFM",
+  "homepage": "https://github.com/xfm0797/X-Note",
+  "main": "main.js"
+}
