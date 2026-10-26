@@ -26,6 +26,7 @@ https://gitee.com/xfm0797/x-note-plugins/raw/main/index.json
 
 | 插件 | 版本 | 说明 |
 | ---- | ---- | ---- |
+| [ai-writer](plugins/ai-writer.zip) | 1.0.0 | **AI 写作助手**：润色 / 翻译 / 摘要 / 生成标题标签，结果可改后写回选区或全文。自填 OpenAI 兼容 baseURL + Key（DeepSeek、Kimi、通义千问、智谱、OpenAI 及自建服务均可），支持测试连接。需 X-Note ≥ 0.3.0 |
 | [todo-dashboard](plugins/todo-dashboard.zip) | 1.0.0 | **全库待办看板**：聚合全库 `- [ ]` 任务，勾选即回写原文件；支持 `#标签` / `@due(2026-12-31)` 筛选、完成率统计、清单导出 |
 | [bulk-replace](plugins/bulk-replace.zip) | 1.0.0 | **全库批量查找替换**：正则/字面替换，先预览命中文件与行号再二次确认；执行前自动备份（`.xnote-bulk-backup/`），支持一键撤销 |
 | [link-check](plugins/link-check.zip) | 1.0.0 | **链接健康检查**：扫描 `[[双向链接]]`，报告断链（附相似标题建议）、孤儿笔记、重名笔记、标签分布，可导出 Markdown 报告 |
@@ -41,12 +42,14 @@ X-Note-Plugins/
 ├── build.py          # 打包脚本：src/<插件> → plugins/<插件>.zip
 ├── README.md
 ├── src/              # 插件源码（可读可审阅）
+│   ├── ai-writer/
 │   ├── todo-dashboard/
 │   ├── bulk-replace/
 │   └── link-check/
 ├── test/
 │   └── plugin-test.mjs   # 插件自测（模拟宿主 + 迷你 React 驱动真实面板逻辑）
 └── plugins/          # .zip 插件包（plugin.json + main.js 位于包根）
+    ├── ai-writer.zip
     ├── todo-dashboard.zip
     ├── bulk-replace.zip
     └── link-check.zip
@@ -57,8 +60,22 @@ X-Note-Plugins/
 ```bash
 python build.py                  # 打包 src/ 下全部插件到 plugins/
 python build.py todo-dashboard    # 只打包指定插件
-node test/plugin-test.mjs         # 跑插件逻辑自测（30 项断言）
+node test/plugin-test.mjs         # 跑插件逻辑自测（51 项断言）
 ```
+
+## 插件能用到的宿主能力
+
+| 能力 | 用途 |
+| --- | --- |
+| `ctx.storage` | 读全库 / 读写删除文件 / 重载库 |
+| `ctx.editor` | 当前笔记与选区：`getContent / setContent / getSelection / replaceSelection / insertText / replaceRange`，`onChange` 订阅正文变化 |
+| `ctx.http` | `postJSON / getJSON / request`；桌面端由 Rust 侧发请求，**不受 WebView CORS 限制**（调 AI、WebDAV、图床都靠它） |
+| `ctx.ui.registerCommand` | 在应用「插件」菜单加一项 |
+| `ctx.ui.registerSettingsPanel` | 在「插件中心」加配置面板 |
+| `ctx.ui.showDialog` | 弹出插件自己的窗口（`{ id, title, subtitle?, width?, render }`），`ctx.ui.closeDialog()` 关闭 |
+| `ctx.settings` | 插件私有配置（localStorage，按插件 id 隔离） |
+
+`ctx.editor` / `ctx.http` / `ctx.ui.showDialog` 自 **X-Note 0.3.0** 起提供；用到它们的插件请在 `plugin.json` 的 `description` 里注明最低版本要求。
 
 ## index.json 条目格式
 

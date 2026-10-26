@@ -1,0 +1,9 @@
+{
+  "id": "ai-writer",
+  "name": "AI 写作助手",
+  "version": "1.0.0",
+  "description": "润色 / 翻译 / 摘要 / 生成标题标签；自带 OpenAI 兼容接口配置，DeepSeek、Kimi、通义千问、智谱、OpenAI 及自建服务都能用",
+  "author": "XFM",
+  "homepage": "https://github.com/xfm0797/X-Note",
+  "main": "main.js"
+}

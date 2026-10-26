@@ -12,7 +12,13 @@ let hookStore = []
 let hookIndex = 0
 
 const R = {
-  createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat(Infinity).filter(c => c != null && c !== false) }),
+  // props.children 与真实 React 保持一致：组件里可以直接读 props.children
+  createElement: (type, props, ...children) => {
+    const kids = children.flat(Infinity).filter(c => c != null && c !== false)
+    const p = { ...(props || {}) }
+    if (kids.length) p.children = kids.length === 1 ? kids[0] : kids
+    return { type, props: p, children: kids }
+  },
   useState(init) {
     const i = hookIndex++
     if (!(i in hookStore)) hookStore[i] = typeof init === 'function' ? init() : init
@@ -20,18 +26,72 @@ const R = {
   },
   useMemo(fn) { hookIndex++; return fn() },
   useEffect() { hookIndex++ },
-  useRef(v) { hookIndex++; return { current: v } }
+  // 与真实 React 一致：同一个组件实例里 ref 对象跨渲染保持同一引用
+  useRef(init) {
+    const i = hookIndex++
+    if (!(i in hookStore)) hookStore[i] = { current: init }
+    return hookStore[i]
+  }
 }
 
 globalThis.window = { XNoteReact: R }
 
 /* ---------------- 模拟宿主 ---------------- */
-function makeHost(files) {
+function makeHost(files, opts = {}) {
   const store = new Map(Object.entries(files))
   const settings = new Map()
   const commands = []
   const panels = []
   const toasts = []
+  const dialogs = []
+  const httpCalls = []
+  const replies = []      // 依次取用的模拟响应
+  const openCbs = []
+
+  // 当前笔记（默认第一篇）+ 选区
+  const ed = { path: opts.active || Object.keys(files)[0] || null, sel: opts.sel || [0, 0] }
+
+  const editor = {
+    active() {
+      return ed.path && store.has(ed.path)
+        ? { path: ed.path, title: ed.path.replace(/\.md$/, ''), content: store.get(ed.path) }
+        : null
+    },
+    getContent() { return ed.path && store.has(ed.path) ? store.get(ed.path) : '' },
+    setContent(t) { if (ed.path) { store.set(ed.path, t); openCbs.forEach(cb => cb(t)) } },
+    getSelection() {
+      const c = editor.getContent()
+      const start = Math.min(ed.sel[0], c.length)
+      const end = Math.min(Math.max(start, ed.sel[1]), c.length)
+      return { text: c.slice(start, end), start, end }
+    },
+    replaceRange(start, end, text) {
+      const c = editor.getContent()
+      const s = Math.max(0, Math.min(start, c.length))
+      const e = Math.max(s, Math.min(end, c.length))
+      const next = c.slice(0, s) + text + c.slice(e)
+      store.set(ed.path, next)
+      ed.sel = [s + text.length, s + text.length]
+      openCbs.forEach(cb => cb(next))
+    },
+    replaceSelection(text) { const s = editor.getSelection(); editor.replaceRange(s.start, s.end, text) },
+    insertText(text) { const s = editor.getSelection(); editor.replaceRange(s.start, s.start, text) },
+    select(a, b) { ed.sel = [a, b] },
+    focus() {},
+    onChange(cb) { openCbs.push(cb); return () => { const i = openCbs.indexOf(cb); if (i >= 0) openCbs.splice(i, 1) } }
+  }
+
+  const http = {
+    async request() { return { status: 200, ok: true, text: '', headers: {} } },
+    async getJSON() { return { status: 200, ok: true, text: '', headers: {}, data: null } },
+    async postJSON(url, body, headers) {
+      httpCalls.push({ url, body, headers })
+      const next = replies.length ? replies.shift() : { choices: [{ message: { content: 'MOCK 结果' } }] }
+      if (next && next.__fail) return { status: next.status || 401, ok: false, text: JSON.stringify({ error: { message: next.__fail } }), headers: {}, data: { error: { message: next.__fail } } }
+      return { status: 200, ok: true, text: JSON.stringify(next), headers: {}, data: next }
+    }
+  }
+
   const ctx = {
     manifest: {},
     storage: {
@@ -46,6 +106,8 @@ function makeHost(files) {
       async getModified() { return 1 },
       async reloadLibrary() { return this.loadAll() }
     },
+    editor,
+    http,
     settings: {
       get(k, d) { return settings.has(k) ? settings.get(k) : d },
       set(k, v) { settings.set(k, v) }
@@ -53,11 +115,13 @@ function makeHost(files) {
     ui: {
       registerCommand(c) { commands.push(c) },
       registerSettingsPanel(p) { panels.push(p) },
+      showDialog(d) { dialogs.push(d) },
+      closeDialog() { dialogs.length = 0 },
       showToast(t, kind) { toasts.push({ t, kind }) }
     },
     log() {}
   }
-  return { ctx, store, settings, commands, panels, toasts }
+  return { ctx, store, settings, commands, panels, toasts, dialogs, httpCalls, replies, editor, ed }
 }
 
 /* ---------------- 渲染与查找工具 ---------------- */
@@ -92,6 +156,12 @@ function findInput(tree, placeholderPart) {
 }
 function findCheckbox(tree) {
   return walk(tree).find(n => n.type === 'input' && n.props.type === 'checkbox')
+}
+function findTextarea(tree) {
+  return walk(tree).find(n => n.type === 'textarea' && n.props.value !== undefined)
+}
+function renderDialog(host) {
+  return renderPanel(() => host.dialogs[0].render())
 }
 
 async function waitFor(fn, ms = 3000) {
@@ -282,11 +352,112 @@ async function testLinks() {
   ok(report.includes('重名'), '报告含重名小节')
 }
 
+/* ================= 用例 4：AI 写作助手 ================= */
+async function testAi() {
+  console.log('\n[4] AI 写作助手')
+  const doc = '# 旧标题\n\n第一段内容。\n第二段内容。\n'
+  const selStart = doc.indexOf('第一段')
+  resetHooks()
+  const host = makeHost({ 'ai.md': doc }, { active: 'ai.md', sel: [selStart, selStart + 5] })
+  const mod = await import('file://' + join(SRC, 'ai-writer', 'main.js'))
+  await mod.default.activate(host.ctx)
+
+  ok(host.commands.length === 5, '注册 5 个命令', host.commands.map(c => c.title))
+  ok(host.panels.length === 1 && host.panels[0].id === 'aiWriterSettings', '注册接口配置面板')
+
+  // 未配置 Key：自动展开接口设置并提示
+  await host.commands.find(c => c.id === 'ai-writer.open').run()
+  ok(host.dialogs.length === 1, 'showDialog 打开 AI 面板')
+  let tree = renderDialog(host)
+  ok(textOf(tree).includes('还没填 API Key'), '未配置 Key 时给出提示')
+
+  // 手填 baseURL / Key / 模型
+  const keyInput = walk(tree).find(n => n.type === 'input' && n.props.type === 'password')
+  const urlInput = walk(tree).find(n => n.type === 'input' && (n.props.placeholder || '').includes('api.deepseek.com'))
+  const modelInput = walk(tree).find(n => n.type === 'input' && (n.props.placeholder || '') === 'deepseek-chat')
+  ok(!!keyInput && !!urlInput && !!modelInput, '接口设置含地址/Key/模型输入框')
+  urlInput.props.onChange({ target: { value: 'https://api.example.com/v1' } })
+  keyInput.props.onChange({ target: { value: 'sk-test-123' } })
+  modelInput.props.onChange({ target: { value: 'my-model' } })
+  const cfg = host.settings.get('cfg', {})
+  ok(cfg.apiKey === 'sk-test-123' && cfg.model === 'my-model', '配置即时持久化到 settings', cfg)
+
+  // 润色：走选区 → 校验请求形状 → 结果写回选区
+  host.replies.push({ choices: [{ message: { content: '润色后的第一段。' } }] })
+  tree = renderDialog(host)
+  await findButton(tree, '生成').props.onClick()
+  tree = await waitFor(() => {
+    const t = renderDialog(host)
+    const ta = findTextarea(t)
+    return ta && String(ta.props.value).includes('润色后的第一段') ? t : null
+  })
+  const call = host.httpCalls.at(-1)
+  ok(call.url === 'https://api.example.com/v1/chat/completions', 'baseURL 自动补 /chat/completions', call.url)
+  ok(call.body.model === 'my-model' && call.body.stream === false, '请求体带模型名且非流式', call.body)
+  ok(call.headers.Authorization === 'Bearer sk-test-123', 'Bearer 鉴权头', call.headers)
+  ok(call.body.messages[1].content.includes('第一段内容'), '提示词里带选中原文', call.body.messages[1].content.slice(0, 60))
+
+  findButton(tree, '替换选区').props.onClick()
+  ok(host.store.get('ai.md').includes('润色后的第一段。'), '结果写回选区', host.store.get('ai.md'))
+  ok(!host.store.get('ai.md').includes('第一段内容'), '选区原文已被替换')
+
+  // 标题标签：切到全文 → JSON 解析 → 应用标题与标签
+  host.replies.push({ choices: [{ message: { content: '```json\n{"title":"新标题","tags":["#笔记","测试"]}\n```' } }] })
+  tree = renderDialog(host)
+  findButton(tree, '标题标签').props.onClick()
+  tree = renderDialog(host)
+  findButton(tree, '全文').props.onClick()
+  tree = renderDialog(host)
+  await findButton(tree, '生成').props.onClick()
+  tree = await waitFor(() => {
+    const t = renderDialog(host)
+    return textOf(t).includes('解析到：新标题') ? t : null
+  })
+  ok(true, '标题/标签 JSON 解析成功（含 # 前缀清理）')
+  findButton(tree, '应用标题').props.onClick()
+  ok(host.store.get('ai.md').startsWith('# 新标题'), '应用标题：替换一级标题', host.store.get('ai.md').split('\n')[0])
+  findButton(tree, '应用标签').props.onClick()
+  ok(host.store.get('ai.md').includes('#笔记 #测试'), '应用标签：写到标题下一行', host.store.get('ai.md').split('\n').slice(0, 3))
+  findButton(tree, '应用标签').props.onClick()
+  ok(host.store.get('ai.md').split('#笔记').length === 2, '重复应用同一批标签不会叠加')
+
+  // 替换全文：二次确认才生效（切回普通任务才会出现该按钮）
+  const before = host.store.get('ai.md')
+  tree = renderDialog(host)
+  findButton(tree, '润色').props.onClick()
+  tree = renderDialog(host)
+  findButton(tree, '替换全文').props.onClick()
+  tree = renderDialog(host)
+  ok(host.store.get('ai.md') === before, '首次点击「替换全文」不直接执行')
+  const confirmBtn = findButton(tree, '确认替换整篇')
+  ok(!!confirmBtn, '进入二次确认态')
+  confirmBtn.props.onClick()
+  ok(host.store.get('ai.md').trim() === '{"title":"新标题","tags":["#笔记","测试"]}', '确认后整篇替换', host.store.get('ai.md'))
+
+  // 接口报错：401 友好提示
+  host.replies.push({ __fail: 'Invalid API key', status: 401 })
+  tree = renderDialog(host)
+  await findButton(tree, '重新生成').props.onClick()
+  tree = await waitFor(() => {
+    const t = renderDialog(host)
+    return textOf(t).includes('Invalid API key') ? t : null
+  })
+  ok(textOf(tree).includes('401') && textOf(tree).includes('Key 无效'), 'HTTP 401 给出可读错误', textOf(tree).match(/HTTP 401[^\n]*/)?.[0])
+
+  // 没有选区时不误处理全文
+  host.dialogs.length = 0
+  host.ed.sel = [0, 0]
+  host.toasts.length = 0
+  await host.commands.find(c => c.id === 'ai-writer.polish').run()
+  ok(host.dialogs.length === 0 && host.toasts.at(-1).t.includes('选中'), '无选区时润色命令只提示、不打开面板', host.toasts.at(-1))
+}
+
 /* ================= 运行 ================= */
 try {
   await testTodo()
   await testBulk()
   await testLinks()
+  await testAi()
 } catch (e) {
   fail++
   console.error('\n执行异常：', e)

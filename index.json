@@ -3,6 +3,15 @@
   "updated": "2026-10-26",
   "plugins": [
     {
+      "id": "ai-writer",
+      "name": "AI 写作助手",
+      "version": "1.0.0",
+      "description": "润色 / 翻译 / 摘要 / 生成标题标签，结果可修改后写回选区或全文；自填 OpenAI 兼容 baseURL + Key（DeepSeek、Kimi、通义千问、智谱、OpenAI 及自建服务均可）。需 X-Note ≥ 0.3.0",
+      "author": "XFM",
+      "homepage": "https://github.com/xfm0797/X-Note",
+      "zip": "https://cdn.jsdelivr.net/gh/xfm0797/X-Note-Plugins@main/plugins/ai-writer.zip"
+    },
+    {
       "id": "todo-dashboard",
       "name": "全库待办看板",
       "version": "1.0.0",
