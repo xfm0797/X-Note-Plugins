@@ -41,6 +41,7 @@ X-Note-Plugins/
 ├── index.json        # 插件索引（数组或 { plugins: [...] }，每项含 id/name/version/zip）
 ├── build.py          # 打包脚本：src/<插件> → plugins/<插件>.zip
 ├── README.md
+├── 插件开发指南.md    # 外部插件开发指南（契约 / API / 调试 / 打包发布）
 ├── src/              # 插件源码（可读可审阅）
 │   ├── ai-writer/
 │   ├── todo-dashboard/
@@ -71,7 +72,7 @@ node test/plugin-test.mjs         # 跑插件逻辑自测（51 项断言）
 | `ctx.editor` | 当前笔记与选区：`getContent / setContent / getSelection / replaceSelection / insertText / replaceRange`，`onChange` 订阅正文变化 |
 | `ctx.http` | `postJSON / getJSON / request`；桌面端由 Rust 侧发请求，**不受 WebView CORS 限制**（调 AI、WebDAV、图床都靠它） |
 | `ctx.ui.registerCommand` | 在应用「插件」菜单加一项 |
-| `ctx.ui.registerSettingsPanel` | 在「插件中心」加配置面板 |
+| `ctx.ui.registerSettingsPanel` | 在「插件 → 插件设置…」加配置面板（X-Note ≥ 0.4.0；更早版本显示在「插件中心」内） |
 | `ctx.ui.showDialog` | 弹出插件自己的窗口（`{ id, title, subtitle?, width?, render }`），`ctx.ui.closeDialog()` 关闭 |
 | `ctx.settings` | 插件私有配置（localStorage，按插件 id 隔离） |
 
@@ -95,7 +96,7 @@ node test/plugin-test.mjs         # 跑插件逻辑自测（51 项断言）
 
 ## 发布新插件 / 更新版本
 
-1. 按 [插件开发指南](https://github.com/xfm0797/X-Note/blob/main/xnote-external-plugins/%E6%8F%92%E4%BB%B6%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md) 开发插件（`plugin.json` + `main.js`，ESM default 导出）
+1. 按 [插件开发指南](./插件开发指南.md) 开发插件（`plugin.json` + `main.js`，ESM default 导出）
 2. 把插件目录打 zip（`plugin.json` 置于包根）放入 `plugins/`
 3. 在 `index.json` 增加（或更新）条目，提交推送即可——应用内刷新列表立即可见
 
